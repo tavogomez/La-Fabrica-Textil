@@ -1,15 +1,33 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
+import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
+
+// ═══════════════════════════════════════════════
+//  FIREBASE
+// ═══════════════════════════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyC7j0S8YsRI30VRdDF2ZhL07eP8xPp79HU",
+  authDomain: "la-fabrica-textil.firebaseapp.com",
+  projectId: "la-fabrica-textil",
+  storageBucket: "la-fabrica-textil.firebasestorage.app",
+  messagingSenderId: "980683753016",
+  appId: "1:980683753016:web:87d97d9accabba3d9a08cd"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
 // ═══════════════════════════════════════════════
 //  CATÁLOGO DE PRODUCTOS
 // ═══════════════════════════════════════════════
 const CATALOGO = {
-  'remera-recta':    { nombre: 'Remera recta 20.1',       precioBase: 22000, ajusteNino: -2000, ajusteEspecial: 2000,  tieneColores: true,  tieneTalles: true  },
-  'remera-oversize': { nombre: 'Remera oversize 20.01',   precioBase: 25000, ajusteNino: -2000, ajusteEspecial: 2000,  tieneColores: true,  tieneTalles: true  },
-  'buzo-redondo':    { nombre: 'Buzo cuello redondo',     precioBase: 40000, ajusteNino: -2000, ajusteEspecial: 5000,  tieneColores: true,  tieneTalles: true  },
-  'buzo-canguro':    { nombre: 'Buzo canguro',            precioBase: 45000, ajusteNino: -2000, ajusteEspecial: 5000,  tieneColores: true,  tieneTalles: true  },
-  'campera-capucha': { nombre: 'Campera con capucha',     precioBase: 48000, ajusteNino: -2000, ajusteEspecial: 5000,  tieneColores: true,  tieneTalles: true  },
-  'taza':            { nombre: 'Taza cerámica',           precioBase: 10000, ajusteNino: 0,     ajusteEspecial: 0,     tieneColores: false, tieneTalles: false },
-  'gorra':           { nombre: 'Gorra',                   precioBase: 10000, ajusteNino: 0,     ajusteEspecial: 0,     tieneColores: true,  tieneTalles: false },
-  'totebag':         { nombre: 'Totebag',                 precioBase: 12000, ajusteNino: 0,     ajusteEspecial: 0,     tieneColores: false, tieneTalles: false },
+  'remera-recta':    { nombre: 'Remera recta 20.1',     precioBase: 22000, ajusteNino: -2000, ajusteEspecial: 2000,  tieneColores: true,  tieneTalles: true  },
+  'remera-oversize': { nombre: 'Remera oversize 20.01', precioBase: 25000, ajusteNino: -2000, ajusteEspecial: 2000,  tieneColores: true,  tieneTalles: true  },
+  'buzo-redondo':    { nombre: 'Buzo cuello redondo',   precioBase: 40000, ajusteNino: -2000, ajusteEspecial: 5000,  tieneColores: true,  tieneTalles: true  },
+  'buzo-canguro':    { nombre: 'Buzo canguro',          precioBase: 45000, ajusteNino: -2000, ajusteEspecial: 5000,  tieneColores: true,  tieneTalles: true  },
+  'campera-capucha': { nombre: 'Campera con capucha',   precioBase: 48000, ajusteNino: -2000, ajusteEspecial: 5000,  tieneColores: true,  tieneTalles: true  },
+  'taza':            { nombre: 'Taza cerámica',         precioBase: 10000, ajusteNino: 0,     ajusteEspecial: 0,     tieneColores: false, tieneTalles: false },
+  'gorra':           { nombre: 'Gorra',                 precioBase: 10000, ajusteNino: 0,     ajusteEspecial: 0,     tieneColores: true,  tieneTalles: false },
+  'totebag':         { nombre: 'Totebag',               precioBase: 12000, ajusteNino: 0,     ajusteEspecial: 0,     tieneColores: false, tieneTalles: false },
 };
 
 const COLORES = ['Blanco', 'Negro', 'Gris', 'Rojo', 'Otro'];
@@ -24,24 +42,54 @@ const ESTADOS = {
 };
 
 // ═══════════════════════════════════════════════
-//  DATOS (localStorage)
+//  ESTADO LOCAL (caché de Firestore)
 // ═══════════════════════════════════════════════
-const DB = {
-  get: key => { try { return JSON.parse(localStorage.getItem(key)) || []; } catch { return []; } },
-  set: (key, val) => localStorage.setItem(key, JSON.stringify(val)),
-  pedidos:       () => DB.get('sg_pedidos'),
-  presupuestos:  () => DB.get('sg_presupuestos'),
-  stock:         () => DB.get('sg_stock'),
-  savePedidos:      d => DB.set('sg_pedidos', d),
-  savePresupuestos: d => DB.set('sg_presupuestos', d),
-  saveStock:        d => DB.set('sg_stock', d),
-};
+let _pedidos      = [];
+let _presupuestos = [];
+let _stock        = [];
 
+// ═══════════════════════════════════════════════
+//  FIRESTORE — escucha en tiempo real
+// ═══════════════════════════════════════════════
+onSnapshot(collection(db, 'pedidos'), snap => {
+  _pedidos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  if (seccionActiva() === 'dashboard') renderDashboard();
+  if (seccionActiva() === 'pedidos')   renderPedidos();
+});
+
+onSnapshot(collection(db, 'presupuestos'), snap => {
+  _presupuestos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  if (seccionActiva() === 'presupuestos') renderPresupuestos();
+});
+
+onSnapshot(collection(db, 'stock'), snap => {
+  _stock = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  if (seccionActiva() === 'stock') renderStock();
+});
+
+function seccionActiva() {
+  return document.querySelector('.section.active')?.id;
+}
+
+// ═══════════════════════════════════════════════
+//  GUARDAR / ELIMINAR en Firestore
+// ═══════════════════════════════════════════════
+async function guardarDoc(coleccion, id, data) {
+  await setDoc(doc(db, coleccion, id), data);
+}
+
+async function eliminarDoc(coleccion, id) {
+  await deleteDoc(doc(db, coleccion, id));
+}
+
+// ═══════════════════════════════════════════════
+//  NUMERACIÓN
+// ═══════════════════════════════════════════════
 function nextNum(tipo) {
-  const items  = tipo === 'pedido' ? DB.pedidos() : DB.presupuestos();
+  const items  = tipo === 'pedido' ? _pedidos : _presupuestos;
   const prefix = tipo === 'pedido' ? 'P-' : 'PR-';
   if (!items.length) return prefix + '0001';
-  const nums = items.map(i => parseInt(i.numero.replace(/\D/g, '')) || 0);
+  const nums = items.map(i => parseInt(i.numero?.replace(/\D/g, '')) || 0);
   return prefix + String(Math.max(...nums) + 1).padStart(4, '0');
 }
 
@@ -53,7 +101,7 @@ function precioItem(productoId, talle) {
   if (!p) return 0;
   let precio = p.precioBase;
   if (p.tieneTalles) {
-    if (talle === 'Niño')    precio += p.ajusteNino;
+    if (talle === 'Niño')     precio += p.ajusteNino;
     if (talle === 'Especial') precio += p.ajusteEspecial;
   }
   return precio;
@@ -74,45 +122,40 @@ function nav(section) {
   window.scrollTo(0, 0);
 }
 
-document.querySelectorAll('.nav-item').forEach(el =>
-  el.addEventListener('click', e => { e.preventDefault(); nav(el.dataset.section); })
-);
-
 // ═══════════════════════════════════════════════
 //  DASHBOARD
 // ═══════════════════════════════════════════════
 function renderDashboard() {
-  const pedidos = DB.pedidos();
-  const activos  = pedidos.filter(p => !['entregado','cancelado'].includes(p.estado));
-  const produccion = pedidos.filter(p => p.estado === 'produccion');
-  const listos     = pedidos.filter(p => p.estado === 'listo');
-
-  const totalCobrarPendiente = pedidos
+  const activos    = _pedidos.filter(p => !['entregado','cancelado'].includes(p.estado));
+  const produccion = _pedidos.filter(p => p.estado === 'produccion');
+  const listos     = _pedidos.filter(p => p.estado === 'listo');
+  const totalCobrar = _pedidos
     .filter(p => p.estado !== 'cancelado' && !p.cobro?.saldoPagado)
     .reduce((s, p) => s + ((p.total || 0) - (p.cobro?.senaPagada ? (p.cobro.sena || 0) : 0)), 0);
 
   document.getElementById('stat-activos').textContent    = activos.length;
   document.getElementById('stat-produccion').textContent = produccion.length;
   document.getElementById('stat-listos').textContent     = listos.length;
-  document.getElementById('stat-cobrar').textContent     = pesos(totalCobrarPendiente);
+  document.getElementById('stat-cobrar').textContent     = pesos(totalCobrar);
 
-  const hoy = new Date();
   const enSemana = activos
     .filter(p => p.fechaEntrega && diffDias(p.fechaEntrega) <= 7 && diffDias(p.fechaEntrega) >= 0)
     .sort((a,b) => new Date(a.fechaEntrega) - new Date(b.fechaEntrega));
 
-  const tbody = document.getElementById('urgentes-tbody');
+  const tbody    = document.getElementById('urgentes-tbody');
   const mobileEl = document.getElementById('urgentes-mobile');
+  const vacio = `<div class="empty-state">No hay pedidos para los próximos 7 días</div>`;
+
   if (!enSemana.length) {
-    tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">No hay pedidos para los próximos 7 días</div></td></tr>`;
-    mobileEl.innerHTML = `<div class="empty-state">No hay pedidos para los próximos 7 días</div>`;
+    tbody.innerHTML    = `<tr><td colspan="6">${vacio}</td></tr>`;
+    mobileEl.innerHTML = vacio;
     return;
   }
   tbody.innerHTML = enSemana.map(p => `
     <tr onclick="abrirDetalle('${p.id}')">
       <td><strong>${p.numero}</strong></td>
       <td>${p.cliente}</td>
-      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${resumenProductos(p)}</td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${resumenProductos(p)}</td>
       <td class="${diffDias(p.fechaEntrega) <= 2 ? 'urgente' : ''}">${fecha(p.fechaEntrega)}</td>
       <td><span class="badge badge-${p.estado}">${ESTADOS[p.estado]}</span></td>
       <td><span class="cobro-badge ${cobroBadge(p)}">${cobroLabel(p)}</span></td>
@@ -138,11 +181,10 @@ let filtroActivo = 'todos';
 let busqueda = '';
 
 function renderPedidos() {
-  let lista = DB.pedidos();
-
+  let lista = [..._pedidos];
   if (filtroActivo !== 'todos') lista = lista.filter(p => p.estado === filtroActivo);
   if (busqueda) lista = lista.filter(p =>
-    p.cliente.toLowerCase().includes(busqueda) || p.numero.toLowerCase().includes(busqueda)
+    p.cliente?.toLowerCase().includes(busqueda) || p.numero?.toLowerCase().includes(busqueda)
   );
   lista.sort((a,b) => {
     if (!a.fechaEntrega) return 1;
@@ -154,18 +196,20 @@ function renderPedidos() {
     btn.classList.toggle('active', btn.dataset.filter === filtroActivo)
   );
 
-  const tbody   = document.getElementById('pedidos-tbody');
+  const tbody    = document.getElementById('pedidos-tbody');
   const mobileEl = document.getElementById('pedidos-mobile');
+  const vacio = `<div class="empty-state">No hay pedidos</div>`;
+
   if (!lista.length) {
-    tbody.innerHTML    = `<tr><td colspan="7"><div class="empty-state">No hay pedidos</div></td></tr>`;
-    mobileEl.innerHTML = `<div class="empty-state">No hay pedidos</div>`;
+    tbody.innerHTML    = `<tr><td colspan="7">${vacio}</td></tr>`;
+    mobileEl.innerHTML = vacio;
     return;
   }
   tbody.innerHTML = lista.map(p => `
     <tr onclick="abrirDetalle('${p.id}')">
       <td><strong>${p.numero}</strong></td>
       <td>${p.cliente}<br><small style="color:#94a3b8">${p.telefono || ''}</small></td>
-      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${resumenProductos(p)}</td>
+      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${resumenProductos(p)}</td>
       <td class="${diffDias(p.fechaEntrega) <= 2 && !['entregado','cancelado'].includes(p.estado) ? 'urgente' : ''}">${fecha(p.fechaEntrega)}</td>
       <td><span class="badge badge-${p.estado}">${ESTADOS[p.estado]}</span></td>
       <td><span class="cobro-badge ${cobroBadge(p)}">${cobroLabel(p)}</span></td>
@@ -192,26 +236,28 @@ function renderPedidos() {
 //  LISTA PRESUPUESTOS
 // ═══════════════════════════════════════════════
 function renderPresupuestos() {
-  const lista = DB.presupuestos();
+  const lista    = [..._presupuestos];
   const tbody    = document.getElementById('presupuestos-tbody');
   const mobileEl = document.getElementById('presupuestos-mobile');
+  const vacio = `<div class="empty-state">No hay presupuestos activos</div>`;
+
   if (!lista.length) {
-    tbody.innerHTML    = `<tr><td colspan="6"><div class="empty-state">No hay presupuestos activos</div></td></tr>`;
-    mobileEl.innerHTML = `<div class="empty-state">No hay presupuestos activos</div>`;
+    tbody.innerHTML    = `<tr><td colspan="6">${vacio}</td></tr>`;
+    mobileEl.innerHTML = vacio;
     return;
   }
   tbody.innerHTML = lista.map(p => `
     <tr>
       <td><strong>${p.numero}</strong></td>
       <td>${p.cliente}<br><small style="color:#94a3b8">${p.telefono || ''}</small></td>
-      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${resumenProductos(p)}</td>
+      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${resumenProductos(p)}</td>
       <td>${fecha(p.fecha)}</td>
       <td><strong>${pesos(p.total)}</strong></td>
       <td>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <button class="btn btn-primary btn-sm" onclick="confirmarPresupuesto('${p.id}',event)">Confirmar pedido</button>
-          <button class="btn btn-secondary btn-sm" onclick="editarPresupuesto('${p.id}',event)">Editar</button>
-          <button class="btn btn-danger btn-sm" onclick="descartarPresupuesto('${p.id}',event)">Descartar</button>
+          <button class="btn btn-primary btn-sm" onclick="confirmarPresupuesto('${p.id}')">Confirmar pedido</button>
+          <button class="btn btn-secondary btn-sm" onclick="editarPresupuesto('${p.id}')">Editar</button>
+          <button class="btn btn-danger btn-sm" onclick="descartarPresupuesto('${p.id}')">Descartar</button>
         </div>
       </td>
     </tr>`).join('');
@@ -224,9 +270,9 @@ function renderPresupuestos() {
       <div class="presup-card-num">${p.numero} · ${fecha(p.fecha)}</div>
       <div class="presup-card-productos">${resumenProductos(p)}</div>
       <div class="presup-card-actions">
-        <button class="btn btn-primary btn-sm" onclick="confirmarPresupuesto('${p.id}',event)">✓ Confirmar</button>
-        <button class="btn btn-secondary btn-sm" onclick="editarPresupuesto('${p.id}',event)">Editar</button>
-        <button class="btn btn-danger btn-sm" onclick="descartarPresupuesto('${p.id}',event)">✕</button>
+        <button class="btn btn-primary btn-sm" onclick="confirmarPresupuesto('${p.id}')">✓ Confirmar</button>
+        <button class="btn btn-secondary btn-sm" onclick="editarPresupuesto('${p.id}')">Editar</button>
+        <button class="btn btn-danger btn-sm" onclick="descartarPresupuesto('${p.id}')">✕</button>
       </div>
     </div>`).join('');
 }
@@ -234,8 +280,8 @@ function renderPresupuestos() {
 // ═══════════════════════════════════════════════
 //  FORMULARIO NUEVO PEDIDO
 // ═══════════════════════════════════════════════
-let lineas = [];
-let editId = null;
+let lineas   = [];
+let editId   = null;
 let editTipo = null;
 
 function initForm(data = null, tipo = null) {
@@ -246,18 +292,16 @@ function initForm(data = null, tipo = null) {
   document.getElementById('form-title').textContent =
     data ? (tipo === 'presupuesto' ? 'Editar presupuesto' : 'Editar pedido') : 'Nuevo pedido / presupuesto';
 
-  document.getElementById('f-cliente').value    = data?.cliente || '';
-  document.getElementById('f-telefono').value   = data?.telefono || '';
-  document.getElementById('f-entrega').value    = data?.fechaEntrega || '';
-  document.getElementById('f-notas').value      = data?.notas || '';
-  document.getElementById('f-diseno').value     = data?.diseno?.tipo || 'nuestro';
-  document.getElementById('f-diseno-notas').value = data?.diseno?.notas || '';
+  document.getElementById('f-cliente').value       = data?.cliente || '';
+  document.getElementById('f-telefono').value      = data?.telefono || '';
+  document.getElementById('f-entrega').value       = data?.fechaEntrega || '';
+  document.getElementById('f-notas').value         = data?.notas || '';
+  document.getElementById('f-diseno').value        = data?.diseno?.tipo || 'nuestro';
+  document.getElementById('f-diseno-notas').value  = data?.diseno?.notas || '';
 
   document.getElementById('lineas-container').innerHTML = '';
-
   if (data?.productos?.length) data.productos.forEach(p => agregarLinea(p));
   else agregarLinea();
-
   calcularTotal();
 }
 
@@ -270,7 +314,7 @@ function agregarLinea(data = null) {
 function renderLinea(idx) {
   const container = document.getElementById('lineas-container');
   const existing  = document.getElementById(`linea-${idx}`);
-  const ln  = lineas[idx];
+  const ln   = lineas[idx];
   const prod = ln.productoId ? CATALOGO[ln.productoId] : null;
   const subtotal = prod ? precioItem(ln.productoId, ln.talle) * (ln.cantidad || 1) : 0;
 
@@ -343,9 +387,9 @@ function calcularTotal() {
     if (!ln.productoId) return s;
     return s + precioItem(ln.productoId, ln.talle) * (ln.cantidad || 1);
   }, 0);
-  document.getElementById('sum-total').textContent  = pesos(total);
-  document.getElementById('sum-sena').textContent   = pesos(total * 0.5);
-  document.getElementById('sum-saldo').textContent  = pesos(total * 0.5);
+  document.getElementById('sum-total').textContent = pesos(total);
+  document.getElementById('sum-sena').textContent  = pesos(total * 0.5);
+  document.getElementById('sum-saldo').textContent = pesos(total * 0.5);
   return total;
 }
 
@@ -371,89 +415,70 @@ function validarForm(data) {
   return true;
 }
 
-function guardarPresupuesto() {
+async function guardarPresupuesto() {
   const data = obtenerDatosForm();
   if (!validarForm(data)) return;
-  const lista = DB.presupuestos();
-  if (editId && editTipo === 'presupuesto') {
-    const idx = lista.findIndex(p => p.id === editId);
-    lista[idx] = { ...lista[idx], ...data };
-  } else {
-    lista.push({
-      id: uid(), numero: nextNum('presupuesto'),
-      fecha: new Date().toISOString(),
-      historial: [log('Presupuesto creado')],
-      ...data,
-    });
-  }
-  DB.savePresupuestos(lista);
+  const id = editId && editTipo === 'presupuesto' ? editId : uid();
+  const existing = _presupuestos.find(p => p.id === id) || {};
+  await guardarDoc('presupuestos', id, {
+    ...existing, ...data,
+    numero:   existing.numero || nextNum('presupuesto'),
+    fecha:    existing.fecha  || new Date().toISOString(),
+    historial: [...(existing.historial || []), log(editId ? 'Presupuesto editado' : 'Presupuesto creado')],
+  });
   nav('presupuestos');
 }
 
-function confirmarPedido() {
+async function confirmarPedido() {
   const data = obtenerDatosForm();
   if (!validarForm(data)) return;
-  const lista = DB.pedidos();
-  if (editId && editTipo === 'pedido') {
-    const idx = lista.findIndex(p => p.id === editId);
-    lista[idx] = { ...lista[idx], ...data, historial: [...(lista[idx].historial||[]), log('Pedido editado')] };
-  } else {
-    lista.push({
-      id: uid(), numero: nextNum('pedido'),
-      fechaPedido: new Date().toISOString(),
-      estado: 'confirmado',
-      cobro: { sena: data.total * 0.5, senaPagada: false, saldoPagado: false, metodoPago: '' },
-      historial: [log('Pedido confirmado')],
-      ...data,
-    });
-  }
-  DB.savePedidos(lista);
+  const id = editId && editTipo === 'pedido' ? editId : uid();
+  const existing = _pedidos.find(p => p.id === id) || {};
+  await guardarDoc('pedidos', id, {
+    ...existing, ...data,
+    numero:      existing.numero      || nextNum('pedido'),
+    fechaPedido: existing.fechaPedido || new Date().toISOString(),
+    estado:      existing.estado      || 'confirmado',
+    cobro:       existing.cobro       || { sena: data.total * 0.5, senaPagada: false, saldoPagado: false, metodoPago: '' },
+    historial:   [...(existing.historial || []), log(editId ? 'Pedido editado' : 'Pedido confirmado')],
+  });
   nav('pedidos');
 }
 
 // ═══════════════════════════════════════════════
 //  CONFIRMAR / EDITAR / DESCARTAR PRESUPUESTO
 // ═══════════════════════════════════════════════
-function confirmarPresupuesto(id, e) {
-  e.stopPropagation();
-  const lista = DB.presupuestos();
-  const idx   = lista.findIndex(p => p.id === id);
-  const pres  = lista[idx];
-  const pedidos = DB.pedidos();
-  pedidos.push({
-    ...pres,
-    id: uid(), numero: nextNum('pedido'),
+async function confirmarPresupuesto(id) {
+  const pres = _presupuestos.find(p => p.id === id);
+  if (!pres) return;
+  const nuevoId = uid();
+  await guardarDoc('pedidos', nuevoId, {
+    ...pres, id: nuevoId,
+    numero:      nextNum('pedido'),
     fechaPedido: new Date().toISOString(),
-    estado: 'confirmado',
-    cobro: { sena: pres.total * 0.5, senaPagada: false, saldoPagado: false, metodoPago: '' },
-    historial: [log(`Convertido desde presupuesto ${pres.numero}`)],
+    estado:      'confirmado',
+    cobro:       { sena: pres.total * 0.5, senaPagada: false, saldoPagado: false, metodoPago: '' },
+    historial:   [log(`Convertido desde presupuesto ${pres.numero}`)],
   });
-  DB.savePedidos(pedidos);
-  lista.splice(idx, 1);
-  DB.savePresupuestos(lista);
-  renderPresupuestos();
-  renderDashboard();
+  await eliminarDoc('presupuestos', id);
 }
 
-function editarPresupuesto(id, e) {
-  e.stopPropagation();
-  const pres = DB.presupuestos().find(p => p.id === id);
+function editarPresupuesto(id) {
+  const pres = _presupuestos.find(p => p.id === id);
   nav('nuevo-pedido');
   initForm(pres, 'presupuesto');
 }
 
-function descartarPresupuesto(id, e) {
-  e.stopPropagation();
+async function descartarPresupuesto(id) {
   if (!confirm('¿Descartar este presupuesto?')) return;
-  DB.savePresupuestos(DB.presupuestos().filter(p => p.id !== id));
-  renderPresupuestos();
+  await eliminarDoc('presupuestos', id);
 }
 
 // ═══════════════════════════════════════════════
 //  DETALLE DE PEDIDO (modal)
 // ═══════════════════════════════════════════════
 function abrirDetalle(id) {
-  const p = DB.pedidos().find(x => x.id === id);
+  const p = _pedidos.find(x => x.id === id);
   if (!p) return;
   const saldo = p.total - (p.cobro?.sena || p.total * 0.5);
 
@@ -500,19 +525,15 @@ function abrirDetalle(id) {
         <div class="cobro-row"><span>Total</span><strong>${pesos(p.total)}</strong></div>
         <div class="cobro-row">
           <span>Seña (50%) — ${pesos(p.cobro?.sena || p.total*0.5)}</span>
-          <div style="display:flex;gap:8px;align-items:center">
-            ${p.cobro?.senaPagada
-              ? `<span class="cobro-badge cobro-completo">Pagada ✓</span>`
-              : `<button class="btn btn-primary btn-sm" onclick="marcarSena('${p.id}')">Marcar pagada</button>`}
-          </div>
+          ${p.cobro?.senaPagada
+            ? `<span class="cobro-badge cobro-completo">Pagada ✓</span>`
+            : `<button class="btn btn-primary btn-sm" onclick="marcarSena('${p.id}')">Marcar pagada</button>`}
         </div>
         <div class="cobro-row">
           <span>Saldo — ${pesos(saldo)}</span>
-          <div style="display:flex;gap:8px;align-items:center">
-            ${p.cobro?.saldoPagado
-              ? `<span class="cobro-badge cobro-completo">Pagado ✓</span>`
-              : `<button class="btn btn-primary btn-sm" ${!p.cobro?.senaPagada ? 'disabled title="Primero marcá la seña"' : ''} onclick="marcarSaldo('${p.id}')">Marcar pagado</button>`}
-          </div>
+          ${p.cobro?.saldoPagado
+            ? `<span class="cobro-badge cobro-completo">Pagado ✓</span>`
+            : `<button class="btn btn-primary btn-sm" ${!p.cobro?.senaPagada ? 'disabled' : ''} onclick="marcarSaldo('${p.id}')">Marcar pagado</button>`}
         </div>
       </div>
     </div>
@@ -547,68 +568,57 @@ function abrirDetalle(id) {
 
 function cerrarModal() { document.getElementById('modal-detalle').classList.remove('active'); }
 
-function marcarSena(id) {
-  const lista = DB.pedidos();
-  const idx   = lista.findIndex(p => p.id === id);
-  lista[idx].cobro.senaPagada = true;
-  lista[idx].historial.push(log('Seña marcada como pagada'));
-  DB.savePedidos(lista);
+async function marcarSena(id) {
+  const p = _pedidos.find(x => x.id === id);
+  if (!p) return;
+  const updated = { ...p, cobro: { ...p.cobro, senaPagada: true }, historial: [...(p.historial||[]), log('Seña marcada como pagada')] };
+  await guardarDoc('pedidos', id, updated);
   abrirDetalle(id);
-  renderPedidos();
-  renderDashboard();
 }
 
-function marcarSaldo(id) {
-  const lista = DB.pedidos();
-  const idx   = lista.findIndex(p => p.id === id);
-  lista[idx].cobro.saldoPagado = true;
-  lista[idx].historial.push(log('Saldo marcado como pagado'));
-  DB.savePedidos(lista);
+async function marcarSaldo(id) {
+  const p = _pedidos.find(x => x.id === id);
+  if (!p) return;
+  const updated = { ...p, cobro: { ...p.cobro, saldoPagado: true }, historial: [...(p.historial||[]), log('Saldo marcado como pagado')] };
+  await guardarDoc('pedidos', id, updated);
   abrirDetalle(id);
-  renderPedidos();
-  renderDashboard();
 }
 
-function cambiarEstado(id, nuevoEstado) {
-  const lista = DB.pedidos();
-  const idx   = lista.findIndex(p => p.id === id);
-  const prev  = lista[idx].estado;
-  lista[idx].estado = nuevoEstado;
-  lista[idx].historial.push(log(`Estado: ${ESTADOS[prev]} → ${ESTADOS[nuevoEstado]}`));
-  DB.savePedidos(lista);
+async function cambiarEstado(id, nuevoEstado) {
+  const p = _pedidos.find(x => x.id === id);
+  if (!p) return;
+  const updated = { ...p, estado: nuevoEstado, historial: [...(p.historial||[]), log(`Estado: ${ESTADOS[p.estado]} → ${ESTADOS[nuevoEstado]}`)] };
+  await guardarDoc('pedidos', id, updated);
   abrirDetalle(id);
-  renderPedidos();
-  renderDashboard();
 }
 
 function editarPedido(id) {
-  const p = DB.pedidos().find(x => x.id === id);
+  const p = _pedidos.find(x => x.id === id);
   cerrarModal();
   nav('nuevo-pedido');
   initForm(p, 'pedido');
 }
 
-function eliminarPedido(id) {
-  if (!confirm('¿Eliminar este pedido? Esta acción no se puede deshacer.')) return;
-  DB.savePedidos(DB.pedidos().filter(p => p.id !== id));
+async function eliminarPedido(id) {
+  if (!confirm('¿Eliminar este pedido?')) return;
+  await eliminarDoc('pedidos', id);
   cerrarModal();
-  renderPedidos();
-  renderDashboard();
 }
 
 // ═══════════════════════════════════════════════
 //  STOCK
 // ═══════════════════════════════════════════════
 function renderStock() {
-  const lista = DB.stock();
   const tbody    = document.getElementById('stock-tbody');
   const mobileEl = document.getElementById('stock-mobile');
-  if (!lista.length) {
-    tbody.innerHTML    = `<tr><td colspan="5"><div class="empty-state">No hay ítems en stock.</div></td></tr>`;
-    mobileEl.innerHTML = `<div class="empty-state">No hay ítems en stock.</div>`;
+  const vacio = `<div class="empty-state">No hay ítems en stock.</div>`;
+
+  if (!_stock.length) {
+    tbody.innerHTML    = `<tr><td colspan="5">${vacio}</td></tr>`;
+    mobileEl.innerHTML = vacio;
     return;
   }
-  tbody.innerHTML = lista.map(s => `
+  tbody.innerHTML = _stock.map(s => `
     <tr>
       <td><strong>${CATALOGO[s.productoId]?.nombre || s.productoId}</strong></td>
       <td>${s.color || '—'}</td>
@@ -622,7 +632,7 @@ function renderStock() {
         <button class="btn btn-danger btn-sm" style="margin-left:4px" onclick="eliminarStock('${s.id}')">✕</button>
       </td>
     </tr>`).join('');
-  mobileEl.innerHTML = lista.map(s => `
+  mobileEl.innerHTML = _stock.map(s => `
     <div class="stock-card">
       <div class="stock-card-info">
         <div class="stock-card-nombre">${CATALOGO[s.productoId]?.nombre || s.productoId}</div>
@@ -640,11 +650,11 @@ function renderStock() {
 }
 
 function abrirStockModal(item = null) {
-  document.getElementById('stock-id').value        = item?.id || '';
-  document.getElementById('stock-producto').value  = item?.productoId || '';
-  document.getElementById('stock-color').value     = item?.color || '';
-  document.getElementById('stock-talle').value     = item?.talle || '';
-  document.getElementById('stock-cantidad').value  = item?.cantidad || 1;
+  document.getElementById('stock-id').value       = item?.id || '';
+  document.getElementById('stock-producto').value = item?.productoId || '';
+  document.getElementById('stock-color').value    = item?.color || '';
+  document.getElementById('stock-talle').value    = item?.talle || '';
+  document.getElementById('stock-cantidad').value = item?.cantidad || 1;
   actualizarCamposStock();
   document.getElementById('modal-stock').classList.add('active');
 }
@@ -657,30 +667,22 @@ function actualizarCamposStock() {
   document.getElementById('stock-talle-wrap').style.display = prod?.tieneTalles  ? 'block' : 'none';
 }
 
-function guardarStock() {
-  const id        = document.getElementById('stock-id').value;
+async function guardarStock() {
+  const id        = document.getElementById('stock-id').value || uid();
   const productoId = document.getElementById('stock-producto').value;
   const color     = document.getElementById('stock-color').value;
   const talle     = document.getElementById('stock-talle').value;
   const cantidad  = parseInt(document.getElementById('stock-cantidad').value) || 0;
   if (!productoId) { alert('Seleccioná un producto'); return; }
-  const lista = DB.stock();
-  if (id) {
-    const idx = lista.findIndex(s => s.id === id);
-    lista[idx] = { ...lista[idx], productoId, color, talle, cantidad };
-  } else {
-    lista.push({ id: uid(), productoId, color, talle, cantidad });
-  }
-  DB.saveStock(lista);
+  await guardarDoc('stock', id, { productoId, color, talle, cantidad });
   cerrarStockModal();
-  renderStock();
 }
 
-function editarStock(id)   { abrirStockModal(DB.stock().find(s => s.id === id)); }
-function eliminarStock(id) {
+function editarStock(id)   { abrirStockModal(_stock.find(s => s.id === id)); }
+
+async function eliminarStock(id) {
   if (!confirm('¿Eliminar este ítem?')) return;
-  DB.saveStock(DB.stock().filter(s => s.id !== id));
-  renderStock();
+  await eliminarDoc('stock', id);
 }
 
 // ═══════════════════════════════════════════════
@@ -690,45 +692,56 @@ function pesos(n) {
   if (n === undefined || n === null) return '—';
   return '$' + Math.round(n).toLocaleString('es-AR');
 }
-
 function fecha(iso) {
   if (!iso) return '—';
   const d = new Date(iso.length === 10 ? iso + 'T00:00:00' : iso);
   return d.toLocaleDateString('es-AR', { day:'2-digit', month:'2-digit', year:'numeric' });
 }
-
 function fechaCorta(iso) {
   if (!iso) return '—';
   const d = new Date(iso);
   return d.toLocaleDateString('es-AR', { day:'2-digit', month:'2-digit' }) + ' ' +
     d.toLocaleTimeString('es-AR', { hour:'2-digit', minute:'2-digit' });
 }
-
 function diffDias(iso) {
   if (!iso) return 9999;
   return (new Date(iso + 'T00:00:00') - new Date()) / 86400000;
 }
-
 function resumenProductos(p) {
   return (p.productos||[]).map(pr => `${pr.cantidad}× ${CATALOGO[pr.productoId]?.nombre || pr.productoId}`).join(', ') || '—';
 }
-
 function cobroBadge(p) {
   if (p.cobro?.saldoPagado) return 'cobro-completo';
   if (p.cobro?.senaPagada)  return 'cobro-parcial';
   return 'cobro-pendiente';
 }
-
 function cobroLabel(p) {
   if (p.cobro?.saldoPagado) return 'Cobrado ✓';
   if (p.cobro?.senaPagada)  return 'Seña ✓';
   return 'Pendiente';
 }
-
-function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+function uid()  { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
 function log(accion) { return { fecha: new Date().toISOString(), accion }; }
+
+// ═══════════════════════════════════════════════
+//  EXPONER FUNCIONES AL HTML (necesario con module)
+// ═══════════════════════════════════════════════
+Object.assign(window, {
+  nav, agregarLinea, cambiarLinea, quitarLinea,
+  guardarPresupuesto, confirmarPedido,
+  confirmarPresupuesto, editarPresupuesto, descartarPresupuesto,
+  abrirDetalle, cerrarModal, marcarSena, marcarSaldo,
+  cambiarEstado, editarPedido, eliminarPedido,
+  abrirStockModal, cerrarStockModal, actualizarCamposStock,
+  guardarStock, editarStock, eliminarStock,
+  filtroActivo, busqueda,
+});
 
 // ═══════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════
+document.querySelectorAll('.nav-item').forEach(el =>
+  el.addEventListener('click', e => { e.preventDefault(); nav(el.dataset.section); })
+);
+
 nav('dashboard');
