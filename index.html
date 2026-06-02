@@ -3,103 +3,71 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>SubliGest — Gestión de pedidos</title>
+  <title>La Fábrica Textil — Gestión</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<!-- ══════════════ SIDEBAR (desktop) ══════════════ -->
+<!-- ══ SIDEBAR desktop ══ -->
 <aside class="sidebar">
   <div class="sidebar-logo">
-    <h2>SubliGest</h2>
+    <h2>La Fábrica Textil</h2>
     <small>Gestión de pedidos</small>
   </div>
   <nav>
-    <a href="#" class="nav-item" data-section="dashboard">
-      <span class="nav-icon">📊</span><span class="nav-label">Dashboard</span>
-    </a>
-    <a href="#" class="nav-item" data-section="nuevo-pedido">
-      <span class="nav-icon">➕</span><span class="nav-label">Nuevo pedido</span>
-    </a>
-    <a href="#" class="nav-item" data-section="pedidos">
-      <span class="nav-icon">📦</span><span class="nav-label">Pedidos</span>
-    </a>
-    <a href="#" class="nav-item" data-section="presupuestos">
-      <span class="nav-icon">📋</span><span class="nav-label">Presupuestos</span>
-    </a>
-    <a href="#" class="nav-item" data-section="stock">
-      <span class="nav-icon">🗃️</span><span class="nav-label">Stock</span>
-    </a>
+    <a href="#" class="nav-item" data-section="dashboard"><span class="nav-icon">📊</span><span class="nav-label">Dashboard</span></a>
+    <a href="#" class="nav-item" data-section="nuevo-pedido"><span class="nav-icon">➕</span><span class="nav-label">Nuevo pedido</span></a>
+    <a href="#" class="nav-item" data-section="pedidos"><span class="nav-icon">📦</span><span class="nav-label">Pedidos</span></a>
+    <a href="#" class="nav-item" data-section="presupuestos"><span class="nav-icon">📋</span><span class="nav-label">Presupuestos</span></a>
+    <a href="#" class="nav-item" data-section="archivo"><span class="nav-icon">📁</span><span class="nav-label">Archivo</span></a>
+    <a href="#" class="nav-item" data-section="stock"><span class="nav-icon">🗃️</span><span class="nav-label">Stock</span></a>
+    <a href="#" class="nav-item" data-section="lista-compras"><span class="nav-icon">🛒</span><span class="nav-label">Lista de compras</span></a>
+    <a href="#" class="nav-item" data-section="gastos"><span class="nav-icon">💰</span><span class="nav-label">Gastos</span></a>
   </nav>
 </aside>
 
-<!-- ══════════════ BOTTOM NAV (mobile) ══════════════ -->
+<!-- ══ BOTTOM NAV mobile ══ -->
 <nav class="bottom-nav">
-  <div class="bottom-nav-item active" data-section="dashboard" onclick="nav(this.dataset.section)">
-    <span class="bnav-icon">📊</span>Inicio
-  </div>
-  <div class="bottom-nav-item" data-section="nuevo-pedido" onclick="nav(this.dataset.section)">
-    <span class="bnav-icon">➕</span>Nuevo
-  </div>
-  <div class="bottom-nav-item" data-section="pedidos" onclick="nav(this.dataset.section)">
-    <span class="bnav-icon">📦</span>Pedidos
-  </div>
-  <div class="bottom-nav-item" data-section="presupuestos" onclick="nav(this.dataset.section)">
-    <span class="bnav-icon">📋</span>Presup.
-  </div>
-  <div class="bottom-nav-item" data-section="stock" onclick="nav(this.dataset.section)">
-    <span class="bnav-icon">🗃️</span>Stock
-  </div>
+  <div class="bottom-nav-item active" data-section="dashboard" onclick="nav('dashboard')"><span class="bnav-icon">📊</span>Inicio</div>
+  <div class="bottom-nav-item" data-section="nuevo-pedido" onclick="nav('nuevo-pedido')"><span class="bnav-icon">➕</span>Nuevo</div>
+  <div class="bottom-nav-item" data-section="pedidos" onclick="nav('pedidos')"><span class="bnav-icon">📦</span>Pedidos</div>
+  <div class="bottom-nav-item" data-section="stock" onclick="nav('stock')"><span class="bnav-icon">🗃️</span>Stock</div>
+  <div class="bottom-nav-item" id="btn-mas" onclick="toggleMas()"><span class="bnav-icon">☰</span>Más</div>
 </nav>
 
-<!-- ══════════════ MAIN ══════════════ -->
+<!-- ══ MÁS DRAWER mobile ══ -->
+<div class="mas-overlay" id="mas-overlay" onclick="toggleMas()"></div>
+<div class="mas-drawer" id="mas-drawer">
+  <div class="mas-title">Más secciones</div>
+  <div class="mas-item" onclick="nav('presupuestos');toggleMas()"><span>📋</span> Presupuestos</div>
+  <div class="mas-item" onclick="nav('archivo');toggleMas()"><span>📁</span> Archivo</div>
+  <div class="mas-item" onclick="nav('lista-compras');toggleMas()"><span>🛒</span> Lista de compras</div>
+  <div class="mas-item" onclick="nav('gastos');toggleMas()"><span>💰</span> Gastos</div>
+</div>
+
+<!-- ══ MAIN ══ -->
 <main class="main-content">
 
   <!-- ── DASHBOARD ── -->
-  <section id="dashboard" class="section">
+  <section id="dashboard" class="section active">
     <div class="page-header">
       <h1>Dashboard</h1>
-      <p>Resumen del estado actual de tu negocio</p>
+      <p>Resumen del estado actual</p>
     </div>
-
     <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-label">Activos</div>
-        <div class="stat-value" id="stat-activos">—</div>
-        <div class="stat-sub">pedidos en curso</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Producción</div>
-        <div class="stat-value" id="stat-produccion">—</div>
-        <div class="stat-sub">en proceso</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Listos</div>
-        <div class="stat-value" id="stat-listos">—</div>
-        <div class="stat-sub">para entregar</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Por cobrar</div>
-        <div class="stat-value" style="font-size:1.2rem" id="stat-cobrar">—</div>
-        <div class="stat-sub">saldos pendientes</div>
-      </div>
+      <div class="stat-card"><div class="stat-label">Activos</div><div class="stat-value" id="stat-activos">—</div><div class="stat-sub">pedidos en curso</div></div>
+      <div class="stat-card"><div class="stat-label">Producción</div><div class="stat-value" id="stat-produccion">—</div><div class="stat-sub">en proceso</div></div>
+      <div class="stat-card"><div class="stat-label">Listos</div><div class="stat-value" id="stat-listos">—</div><div class="stat-sub">para entregar</div></div>
+      <div class="stat-card"><div class="stat-label">Por cobrar</div><div class="stat-value" style="font-size:1.1rem" id="stat-cobrar">—</div><div class="stat-sub">saldos pendientes</div></div>
     </div>
-
-    <!-- Tabla desktop -->
+    <div class="stats-grid stats-grid-3">
+      <div class="stat-card stat-ingreso"><div class="stat-label">Ingresos cobrados</div><div class="stat-value" style="font-size:1.1rem;color:#10b981" id="stat-ingresos">—</div><div class="stat-sub">este mes</div></div>
+      <div class="stat-card stat-gasto"><div class="stat-label">Gastos</div><div class="stat-value" style="font-size:1.1rem;color:#ef4444" id="stat-gastos">—</div><div class="stat-sub">este mes</div></div>
+      <div class="stat-card stat-ganancia"><div class="stat-label">Ganancia</div><div class="stat-value" style="font-size:1.1rem" id="stat-ganancia">—</div><div class="stat-sub">ingresos − gastos</div></div>
+    </div>
     <div class="card">
-      <div class="card-header">
-        <h3>⚠ Próximos 7 días</h3>
-      </div>
-      <table class="desktop-table">
-        <thead>
-          <tr>
-            <th>#</th><th>Cliente</th><th>Productos</th>
-            <th>Entrega</th><th>Estado</th><th>Cobro</th>
-          </tr>
-        </thead>
-        <tbody id="urgentes-tbody"></tbody>
-      </table>
-      <!-- Cards mobile -->
+      <div class="card-header"><h3>⚠ Próximos 7 días</h3></div>
+      <table class="desktop-table"><thead><tr><th>#</th><th>Cliente</th><th>Productos</th><th>Entrega</th><th>Estado</th><th>Cobro</th></tr></thead><tbody id="urgentes-tbody"></tbody></table>
       <div class="mobile-list" id="urgentes-mobile"></div>
     </div>
   </section>
@@ -110,24 +78,23 @@
       <h1 id="form-title">Nuevo pedido / presupuesto</h1>
       <p>Completá los datos y confirmá o guardá como presupuesto.</p>
     </div>
-
     <div class="order-form-wrap">
 
       <div class="section-block">
         <h3>Datos del cliente</h3>
         <div class="form-row cols-3">
-          <div class="form-group" style="margin-bottom:0">
-            <label>Nombre *</label>
-            <input type="text" id="f-cliente" class="form-control" placeholder="Nombre o empresa" autocomplete="off">
-          </div>
-          <div class="form-group" style="margin-bottom:0">
-            <label>Teléfono / WhatsApp</label>
-            <input type="tel" id="f-telefono" class="form-control" placeholder="11 1234-5678">
-          </div>
-          <div class="form-group" style="margin-bottom:0">
-            <label>Fecha de entrega</label>
-            <input type="date" id="f-entrega" class="form-control">
-          </div>
+          <div class="form-group" style="margin-bottom:0"><label>Nombre *</label><input type="text" id="f-cliente" class="form-control" placeholder="Nombre o empresa" autocomplete="off"></div>
+          <div class="form-group" style="margin-bottom:0"><label>Teléfono / WhatsApp</label><input type="tel" id="f-telefono" class="form-control" placeholder="11 1234-5678"></div>
+          <div class="form-group" style="margin-bottom:0"><label>Fecha de entrega</label><input type="date" id="f-entrega" class="form-control"></div>
+        </div>
+      </div>
+
+      <div class="section-block">
+        <h3>Lista de precios</h3>
+        <div class="price-list-selector">
+          <label class="price-option"><input type="radio" name="listaPrecio" value="normal" checked onchange="recalcularLineas()"><span class="price-option-label">💲 Normal</span></label>
+          <label class="price-option"><input type="radio" name="listaPrecio" value="conocido" onchange="recalcularLineas()"><span class="price-option-label">🤝 Conocido / Feria</span></label>
+          <label class="price-option"><input type="radio" name="listaPrecio" value="nuestro" onchange="recalcularLineas()"><span class="price-option-label">🏠 Nuestro ($0)</span></label>
         </div>
       </div>
 
@@ -140,42 +107,27 @@
       <div class="section-block">
         <h3>Diseño</h3>
         <div class="form-row cols-2">
-          <div class="form-group" style="margin-bottom:0">
-            <label>¿Quién diseña?</label>
+          <div class="form-group" style="margin-bottom:0"><label>¿Quién diseña?</label>
             <select id="f-diseno" class="form-control">
               <option value="nuestro">Lo diseñamos nosotros</option>
               <option value="cliente">El cliente envía el diseño</option>
             </select>
           </div>
-          <div class="form-group" style="margin-bottom:0">
-            <label>Notas del diseño</label>
-            <input type="text" id="f-diseno-notas" class="form-control" placeholder="Frente, espalda, colores...">
-          </div>
+          <div class="form-group" style="margin-bottom:0"><label>Notas del diseño</label><input type="text" id="f-diseno-notas" class="form-control" placeholder="Frente, espalda, colores..."></div>
         </div>
       </div>
 
       <div class="section-block">
         <h3>Notas del pedido</h3>
-        <div class="form-group" style="margin-bottom:0">
-          <textarea id="f-notas" class="form-control" placeholder="Observaciones, aclaraciones..."></textarea>
-        </div>
+        <div class="form-group" style="margin-bottom:0"><textarea id="f-notas" class="form-control" placeholder="Observaciones, aclaraciones..."></textarea></div>
       </div>
 
       <div class="section-block">
         <h3>Resumen de precio</h3>
         <div class="order-summary-box">
-          <div class="summary-row total">
-            <span>Total del pedido</span>
-            <span id="sum-total">$0</span>
-          </div>
-          <div class="summary-row sena-row">
-            <span>Seña (50%)</span>
-            <span id="sum-sena">$0</span>
-          </div>
-          <div class="summary-row">
-            <span>Saldo al entregar</span>
-            <span id="sum-saldo">$0</span>
-          </div>
+          <div class="summary-row total"><span>Total del pedido</span><span id="sum-total">$0</span></div>
+          <div class="summary-row sena-row"><span>Seña (50%)</span><span id="sum-sena">$0</span></div>
+          <div class="summary-row"><span>Saldo al entregar</span><span id="sum-saldo">$0</span></div>
         </div>
       </div>
 
@@ -191,35 +143,33 @@
   <!-- ── PEDIDOS ── -->
   <section id="pedidos" class="section">
     <div class="page-header page-header-row">
-      <div>
-        <h1>Pedidos</h1>
-        <p>Ordenados por fecha de entrega</p>
-      </div>
+      <div><h1>Pedidos</h1><p>Pedidos activos</p></div>
       <button class="btn btn-primary" onclick="nav('nuevo-pedido')">+ Nuevo</button>
     </div>
 
     <div class="filters-bar">
-      <button class="filter-btn active" data-filter="todos"      onclick="filtroActivo=this.dataset.filter;renderPedidos()">Todos</button>
-      <button class="filter-btn"        data-filter="confirmado" onclick="filtroActivo=this.dataset.filter;renderPedidos()">Confirmado</button>
-      <button class="filter-btn"        data-filter="produccion" onclick="filtroActivo=this.dataset.filter;renderPedidos()">Producción</button>
-      <button class="filter-btn"        data-filter="listo"      onclick="filtroActivo=this.dataset.filter;renderPedidos()">Listo</button>
-      <button class="filter-btn"        data-filter="entregado"  onclick="filtroActivo=this.dataset.filter;renderPedidos()">Entregado</button>
-      <input type="text" class="search-input" placeholder="Buscar cliente o #..."
-        oninput="busqueda=this.value.toLowerCase();renderPedidos()">
+      <button class="filter-btn active" data-filter="todos" onclick="setFiltro('todos')">Todos</button>
+      <button class="filter-btn" data-filter="confirmado" onclick="setFiltro('confirmado')">Confirmado</button>
+      <button class="filter-btn" data-filter="produccion" onclick="setFiltro('produccion')">Producción</button>
+      <button class="filter-btn" data-filter="listo" onclick="setFiltro('listo')">Listo</button>
+      <button class="filter-btn" data-filter="sin-cobrar" onclick="setFiltro('sin-cobrar')">Sin cobrar</button>
+      <button class="filter-btn" data-filter="sena-pagada" onclick="setFiltro('sena-pagada')">Seña pagada</button>
+      <button class="filter-btn" data-filter="cobrado" onclick="setFiltro('cobrado')">Cobrado</button>
+    </div>
+
+    <div class="sort-bar">
+      <span class="sort-label">Ordenar:</span>
+      <button class="sort-btn active" data-sort="numero" onclick="setOrden('numero')">N° pedido</button>
+      <button class="sort-btn" data-sort="fecha" onclick="setOrden('fecha')">Fecha entrega</button>
+      <button class="sort-btn" data-sort="total" onclick="setOrden('total')">Valor $</button>
+    </div>
+
+    <div class="search-bar">
+      <input type="text" class="search-input" placeholder="🔍 Buscar por nombre de cliente..." oninput="setBusqueda(this.value)">
     </div>
 
     <div class="card">
-      <!-- Tabla desktop -->
-      <table class="desktop-table">
-        <thead>
-          <tr>
-            <th>#</th><th>Cliente</th><th>Productos</th>
-            <th>Entrega</th><th>Estado</th><th>Cobro</th><th>Total</th>
-          </tr>
-        </thead>
-        <tbody id="pedidos-tbody"></tbody>
-      </table>
-      <!-- Cards mobile -->
+      <table class="desktop-table"><thead><tr><th>#</th><th>Cliente</th><th>Productos</th><th>Entrega</th><th>Estado</th><th>Cobro</th><th>Total</th></tr></thead><tbody id="pedidos-tbody"></tbody></table>
       <div class="mobile-list" id="pedidos-mobile"></div>
     </div>
   </section>
@@ -227,77 +177,85 @@
   <!-- ── PRESUPUESTOS ── -->
   <section id="presupuestos" class="section">
     <div class="page-header page-header-row">
-      <div>
-        <h1>Presupuestos</h1>
-        <p>No cuentan como pedido hasta confirmarlos</p>
-      </div>
+      <div><h1>Presupuestos</h1><p>No cuentan como pedido hasta confirmarlos</p></div>
       <button class="btn btn-primary" onclick="nav('nuevo-pedido')">+ Nuevo</button>
     </div>
-
     <div class="card">
-      <!-- Tabla desktop -->
-      <table class="desktop-table">
-        <thead>
-          <tr>
-            <th>#</th><th>Cliente</th><th>Productos</th>
-            <th>Fecha</th><th>Total</th><th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody id="presupuestos-tbody"></tbody>
-      </table>
-      <!-- Cards mobile -->
+      <table class="desktop-table"><thead><tr><th>#</th><th>Cliente</th><th>Productos</th><th>Precio</th><th>Fecha</th><th>Total</th><th>Acciones</th></tr></thead><tbody id="presupuestos-tbody"></tbody></table>
       <div class="mobile-list" id="presupuestos-mobile"></div>
+    </div>
+  </section>
+
+  <!-- ── ARCHIVO ── -->
+  <section id="archivo" class="section">
+    <div class="page-header">
+      <h1>📁 Archivo</h1>
+      <p>Pedidos entregados y cobrados — cerrados</p>
+    </div>
+    <div class="search-bar">
+      <input type="text" class="search-input" placeholder="🔍 Buscar en archivo..." oninput="setBusquedaArchivo(this.value)">
+    </div>
+    <div class="card">
+      <table class="desktop-table"><thead><tr><th>#</th><th>Cliente</th><th>Productos</th><th>Precio</th><th>Entrega</th><th>Total</th></tr></thead><tbody id="archivo-tbody"></tbody></table>
+      <div class="mobile-list" id="archivo-mobile"></div>
     </div>
   </section>
 
   <!-- ── STOCK ── -->
   <section id="stock" class="section">
     <div class="page-header page-header-row">
-      <div>
-        <h1>Stock</h1>
-        <p>Prendas e insumos disponibles</p>
-      </div>
+      <div><h1>Stock</h1><p>Prendas disponibles. Verde = ok · Rojo = bajo o faltante</p></div>
       <button class="btn btn-primary" onclick="abrirStockModal()">+ Agregar</button>
     </div>
-
     <div class="card">
-      <!-- Tabla desktop -->
-      <table class="desktop-table">
-        <thead>
-          <tr>
-            <th>Producto</th><th>Color</th><th>Talle</th><th>Cantidad</th><th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody id="stock-tbody"></tbody>
-      </table>
-      <!-- Cards mobile -->
+      <table class="desktop-table"><thead><tr><th>Producto</th><th>Color</th><th>Talle</th><th>En stock</th><th>Comprometido</th><th>Disponible</th><th>Acciones</th></tr></thead><tbody id="stock-tbody"></tbody></table>
       <div class="mobile-list" id="stock-mobile"></div>
+    </div>
+  </section>
+
+  <!-- ── LISTA DE COMPRAS ── -->
+  <section id="lista-compras" class="section">
+    <div class="page-header">
+      <h1>🛒 Lista de compras</h1>
+      <p>Lo que necesitás comprar para cubrir todos los pedidos activos</p>
+    </div>
+    <div id="lista-compras-ok" class="alert-ok" style="display:none">✅ Stock completo — todos los pedidos están cubiertos</div>
+    <div class="card" id="lista-compras-card">
+      <table class="desktop-table"><thead><tr><th>Producto</th><th>Color</th><th>Talle</th><th>Necesario</th><th>En stock</th><th>Faltante</th></tr></thead><tbody id="compras-tbody"></tbody></table>
+      <div class="mobile-list" id="compras-mobile"></div>
+    </div>
+  </section>
+
+  <!-- ── GASTOS ── -->
+  <section id="gastos" class="section">
+    <div class="page-header page-header-row">
+      <div><h1>💰 Gastos</h1><p>Compras de artículos e insumos</p></div>
+      <button class="btn btn-primary" onclick="abrirGastoModal()">+ Registrar gasto</button>
+    </div>
+    <div class="stats-grid stats-grid-3" style="margin-bottom:16px">
+      <div class="stat-card"><div class="stat-label">Total este mes</div><div class="stat-value" style="font-size:1.1rem;color:#ef4444" id="gasto-total-mes">—</div></div>
+      <div class="stat-card"><div class="stat-label">Artículos</div><div class="stat-value" style="font-size:1.1rem" id="gasto-articulos-mes">—</div></div>
+      <div class="stat-card"><div class="stat-label">Insumos</div><div class="stat-value" style="font-size:1.1rem" id="gasto-insumos-mes">—</div></div>
+    </div>
+    <div class="card">
+      <table class="desktop-table"><thead><tr><th>Fecha</th><th>Categoría</th><th>Descripción</th><th>Cantidad</th><th>P. unitario</th><th>Total</th><th>Proveedor</th><th></th></tr></thead><tbody id="gastos-tbody"></tbody></table>
+      <div class="mobile-list" id="gastos-mobile"></div>
     </div>
   </section>
 
 </main>
 
-<!-- ══════════════ MODAL DETALLE ══════════════ -->
+<!-- ══ MODAL DETALLE PEDIDO ══ -->
 <div class="modal-overlay" id="modal-detalle" onclick="if(event.target===this)cerrarModal()">
-  <div class="modal">
-    <div class="modal-header">
-      <span></span>
-      <button class="modal-close" onclick="cerrarModal()">✕</button>
-    </div>
-    <div id="modal-content"></div>
-  </div>
+  <div class="modal"><div class="modal-header"><span></span><button class="modal-close" onclick="cerrarModal()">✕</button></div><div id="modal-content"></div></div>
 </div>
 
-<!-- ══════════════ MODAL STOCK ══════════════ -->
+<!-- ══ MODAL STOCK ══ -->
 <div class="modal-overlay" id="modal-stock" onclick="if(event.target===this)cerrarStockModal()">
   <div class="modal" style="max-width:440px">
-    <div class="modal-header">
-      <h2>Ítem de stock</h2>
-      <button class="modal-close" onclick="cerrarStockModal()">✕</button>
-    </div>
+    <div class="modal-header"><h2>Ítem de stock</h2><button class="modal-close" onclick="cerrarStockModal()">✕</button></div>
     <input type="hidden" id="stock-id">
-    <div class="form-group">
-      <label>Producto *</label>
+    <div class="form-group"><label>Producto *</label>
       <select id="stock-producto" class="form-control" onchange="actualizarCamposStock()">
         <option value="">Seleccionar...</option>
         <option value="remera-recta">Remera recta 20.1</option>
@@ -310,30 +268,9 @@
         <option value="totebag">Totebag</option>
       </select>
     </div>
-    <div id="stock-color-wrap" style="display:none">
-      <div class="form-group">
-        <label>Color</label>
-        <select id="stock-color" class="form-control">
-          <option value="">—</option>
-          <option>Blanco</option><option>Negro</option>
-          <option>Gris</option><option>Rojo</option><option>Otro</option>
-        </select>
-      </div>
-    </div>
-    <div id="stock-talle-wrap" style="display:none">
-      <div class="form-group">
-        <label>Talle</label>
-        <select id="stock-talle" class="form-control">
-          <option value="">—</option>
-          <option>Niño</option><option>S</option><option>M</option>
-          <option>L</option><option>XL</option><option>XXL</option><option>Especial</option>
-        </select>
-      </div>
-    </div>
-    <div class="form-group">
-      <label>Cantidad *</label>
-      <input type="number" id="stock-cantidad" class="form-control" min="0" value="1">
-    </div>
+    <div id="stock-color-wrap" style="display:none"><div class="form-group"><label>Color</label><select id="stock-color" class="form-control"><option value="">—</option><option>Blanco</option><option>Negro</option><option>Gris</option><option>Rojo</option><option>Otro</option></select></div></div>
+    <div id="stock-talle-wrap" style="display:none"><div class="form-group"><label>Talle</label><select id="stock-talle" class="form-control"><option value="">—</option><option>Niño</option><option>S</option><option>M</option><option>L</option><option>XL</option><option>XXL</option><option>Especial</option></select></div></div>
+    <div class="form-group"><label>Cantidad *</label><input type="number" id="stock-cantidad" class="form-control" min="0" value="1"></div>
     <div style="display:flex;gap:10px;margin-top:4px">
       <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="guardarStock()">Guardar</button>
       <button class="btn btn-secondary" onclick="cerrarStockModal()">Cancelar</button>
@@ -341,7 +278,57 @@
   </div>
 </div>
 
-<!-- Firebase -->
+<!-- ══ MODAL GASTO ══ -->
+<div class="modal-overlay" id="modal-gasto" onclick="if(event.target===this)cerrarGastoModal()">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header"><h2>Registrar gasto</h2><button class="modal-close" onclick="cerrarGastoModal()">✕</button></div>
+    <input type="hidden" id="gasto-id">
+    <div class="form-row cols-2">
+      <div class="form-group"><label>Fecha *</label><input type="date" id="gasto-fecha" class="form-control"></div>
+      <div class="form-group"><label>Categoría *</label>
+        <select id="gasto-categoria" class="form-control" onchange="actualizarCamposGasto()">
+          <option value="">Seleccionar...</option>
+          <option value="articulos">🧥 Artículos (remeras, buzos...)</option>
+          <option value="insumos">🖨 Insumos imprenta</option>
+          <option value="otro">📦 Otro</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="gasto-articulo-wrap" style="display:none">
+      <div class="form-row cols-3">
+        <div class="form-group"><label>Producto</label>
+          <select id="gasto-producto" class="form-control" onchange="actualizarCamposGastoArticulo()">
+            <option value="">Seleccionar...</option>
+            <option value="remera-recta">Remera recta</option>
+            <option value="remera-oversize">Remera oversize</option>
+            <option value="buzo-redondo">Buzo cuello redondo</option>
+            <option value="buzo-canguro">Buzo canguro</option>
+            <option value="campera-capucha">Campera capucha</option>
+            <option value="taza">Taza cerámica</option>
+            <option value="gorra">Gorra</option>
+            <option value="totebag">Totebag</option>
+          </select>
+        </div>
+        <div id="gasto-color-wrap"><div class="form-group"><label>Color</label><select id="gasto-color" class="form-control"><option value="">—</option><option>Blanco</option><option>Negro</option><option>Gris</option><option>Rojo</option><option>Otro</option></select></div></div>
+        <div id="gasto-talle-wrap"><div class="form-group"><label>Talle</label><select id="gasto-talle" class="form-control"><option value="">—</option><option>Niño</option><option>S</option><option>M</option><option>L</option><option>XL</option><option>XXL</option><option>Especial</option></select></div></div>
+      </div>
+    </div>
+
+    <div class="form-group"><label>Descripción</label><input type="text" id="gasto-descripcion" class="form-control" placeholder="Ej: 20 remeras blancas talle M"></div>
+    <div class="form-row cols-3">
+      <div class="form-group"><label>Cantidad</label><input type="number" id="gasto-cantidad" class="form-control" min="1" value="1" oninput="calcularTotalGasto()"></div>
+      <div class="form-group"><label>Precio unitario</label><input type="number" id="gasto-precio-unit" class="form-control" placeholder="0" oninput="calcularTotalGasto()"></div>
+      <div class="form-group"><label>Total</label><input type="number" id="gasto-total-calc" class="form-control" readonly style="background:#f8fafc"></div>
+    </div>
+    <div class="form-group"><label>Proveedor</label><input type="text" id="gasto-proveedor" class="form-control" placeholder="Nombre del proveedor"></div>
+    <div style="display:flex;gap:10px;margin-top:4px">
+      <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="guardarGasto()">Guardar gasto</button>
+      <button class="btn btn-secondary" onclick="cerrarGastoModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <script type="module" src="app.js"></script>
 </body>
 </html>
