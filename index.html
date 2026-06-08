@@ -238,7 +238,7 @@
       <div class="stat-card"><div class="stat-label">Insumos</div><div class="stat-value" style="font-size:1.1rem" id="gasto-insumos-mes">—</div></div>
     </div>
     <div class="card">
-      <table class="desktop-table"><thead><tr><th>Fecha</th><th>Categoría</th><th>Descripción</th><th>Cantidad</th><th>P. unitario</th><th>Total</th><th>Proveedor</th><th></th></tr></thead><tbody id="gastos-tbody"></tbody></table>
+      <table class="desktop-table"><thead><tr><th>Fecha</th><th>Proveedor</th><th>Detalle</th><th>Ítems</th><th>Total</th><th></th></tr></thead><tbody id="gastos-tbody"></tbody></table>
       <div class="mobile-list" id="gastos-mobile"></div>
     </div>
   </section>
@@ -280,50 +280,39 @@
 
 <!-- ══ MODAL GASTO ══ -->
 <div class="modal-overlay" id="modal-gasto" onclick="if(event.target===this)cerrarGastoModal()">
-  <div class="modal" style="max-width:520px">
-    <div class="modal-header"><h2>Registrar gasto</h2><button class="modal-close" onclick="cerrarGastoModal()">✕</button></div>
+  <div class="modal" style="max-width:580px">
+    <div class="modal-header"><h2>Registrar compra</h2><button class="modal-close" onclick="cerrarGastoModal()">✕</button></div>
     <input type="hidden" id="gasto-id">
-    <div class="form-row cols-2">
-      <div class="form-group"><label>Fecha *</label><input type="date" id="gasto-fecha" class="form-control"></div>
-      <div class="form-group"><label>Categoría *</label>
-        <select id="gasto-categoria" class="form-control" onchange="actualizarCamposGasto()">
-          <option value="">Seleccionar...</option>
-          <option value="articulos">🧥 Artículos (remeras, buzos...)</option>
-          <option value="insumos">🖨 Insumos imprenta</option>
-          <option value="otro">📦 Otro</option>
-        </select>
+
+    <div class="form-row cols-2" style="margin-bottom:14px">
+      <div class="form-group" style="margin-bottom:0"><label>Fecha *</label><input type="date" id="gasto-fecha" class="form-control"></div>
+      <div class="form-group" style="margin-bottom:0"><label>Proveedor</label><input type="text" id="gasto-proveedor" class="form-control" placeholder="Nombre del proveedor"></div>
+    </div>
+
+    <!-- Items de la compra -->
+    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px;margin-bottom:12px">
+      <div style="font-size:0.78rem;font-weight:700;text-transform:uppercase;color:#64748b;margin-bottom:12px">Ítems de la compra</div>
+      <div id="gasto-items-container"></div>
+      <button class="add-product-btn" onclick="agregarItemGasto()">+ Agregar ítem</button>
+    </div>
+
+    <!-- Total -->
+    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:14px;margin-bottom:12px">
+      <div class="form-group" style="margin-bottom:0">
+        <label style="display:flex;justify-content:space-between;align-items:center">
+          <span>Total de la compra *</span>
+          <span id="gi-total-calc-hint" style="font-size:0.8rem;color:#64748b;font-weight:400"></span>
+        </label>
+        <input type="number" id="gi-total-manual" class="form-control"
+          placeholder="Ingresá el total de la factura"
+          oninput="this.dataset.editadoManual=this.value?1:0"
+          style="font-size:1.1rem;font-weight:600;color:#2563eb">
       </div>
     </div>
 
-    <div id="gasto-articulo-wrap" style="display:none">
-      <div class="form-row cols-3">
-        <div class="form-group"><label>Producto</label>
-          <select id="gasto-producto" class="form-control" onchange="actualizarCamposGastoArticulo()">
-            <option value="">Seleccionar...</option>
-            <option value="remera-recta">Remera recta</option>
-            <option value="remera-oversize">Remera oversize</option>
-            <option value="buzo-redondo">Buzo cuello redondo</option>
-            <option value="buzo-canguro">Buzo canguro</option>
-            <option value="campera-capucha">Campera capucha</option>
-            <option value="taza">Taza cerámica</option>
-            <option value="gorra">Gorra</option>
-            <option value="totebag">Totebag</option>
-          </select>
-        </div>
-        <div id="gasto-color-wrap"><div class="form-group"><label>Color</label><select id="gasto-color" class="form-control"><option value="">—</option><option>Blanco</option><option>Negro</option><option>Gris</option><option>Rojo</option><option>Otro</option></select></div></div>
-        <div id="gasto-talle-wrap"><div class="form-group"><label>Talle</label><select id="gasto-talle" class="form-control"><option value="">—</option><option>Niño</option><option>S</option><option>M</option><option>L</option><option>XL</option><option>XXL</option><option>Especial</option></select></div></div>
-      </div>
-    </div>
-
-    <div class="form-group"><label>Descripción</label><input type="text" id="gasto-descripcion" class="form-control" placeholder="Ej: 20 remeras blancas talle M"></div>
-    <div class="form-row cols-3">
-      <div class="form-group"><label>Cantidad</label><input type="number" id="gasto-cantidad" class="form-control" min="1" value="1" oninput="calcularTotalGasto()"></div>
-      <div class="form-group"><label>Precio unitario</label><input type="number" id="gasto-precio-unit" class="form-control" placeholder="0" oninput="calcularTotalGasto()"></div>
-      <div class="form-group"><label>Total</label><input type="number" id="gasto-total-calc" class="form-control" readonly style="background:#f8fafc"></div>
-    </div>
-    <div class="form-group"><label>Proveedor</label><input type="text" id="gasto-proveedor" class="form-control" placeholder="Nombre del proveedor"></div>
+    <div class="form-group"><label>Notas</label><input type="text" id="gasto-notas" class="form-control" placeholder="Observaciones..."></div>
     <div style="display:flex;gap:10px;margin-top:4px">
-      <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="guardarGasto()">Guardar gasto</button>
+      <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="guardarGasto()">Guardar compra</button>
       <button class="btn btn-secondary" onclick="cerrarGastoModal()">Cancelar</button>
     </div>
   </div>
@@ -332,3 +321,4 @@
 <script type="module" src="app.js"></script>
 </body>
 </html>
+
