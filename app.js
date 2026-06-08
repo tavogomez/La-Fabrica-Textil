@@ -796,17 +796,42 @@ function renderListaCompras() {
 }
 
 // ═══════════════════════════════════════════════
-//  GASTOS
+//  GASTOS — multi-ítem por compra
 // ═══════════════════════════════════════════════
+let _gastoItems = [];
+
+// Helper: obtener ítems de un gasto (soporta formato viejo y nuevo)
+function itemsDeGasto(g) {
+  if (g.items?.length) return g.items;
+  if (g.categoria) return [{ categoria:g.categoria, productoId:g.productoId||'', color:g.color||'', talle:g.talle||'', descripcion:g.descripcion||'', cantidad:g.cantidad||0, precioUnitario:g.precioUnitario||null }];
+  return [];
+}
+
+function resumenItems(g) {
+  return itemsDeGasto(g).map(i => {
+    const nombre = i.productoId ? CATALOGO[i.productoId]?.nombre : i.descripcion;
+    const detalle = [i.talle,i.color].filter(Boolean).join('/');
+    return `${i.cantidad||1}× ${nombre||'Ítem'}${detalle?' ('+detalle+')':''}`;
+  }).join(', ') || '—';
+}
+
 function renderGastos() {
   const hoy       = new Date();
   const mesActual = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}`;
   const delMes    = _gastos.filter(g => (g.fecha||'').startsWith(mesActual));
   const totalMes  = delMes.reduce((s,g)=>s+(g.total||0),0);
-  const artMes    = delMes.filter(g=>g.categoria==='articulos').reduce((s,g)=>s+(g.total||0),0);
-  const insMes    = delMes.filter(g=>g.categoria==='insumos').reduce((s,g)=>s+(g.total||0),0);
 
-  document.getElementById('gasto-total-mes').textContent    = pesos(totalMes);
+  // Totales por categoría (nuevo y viejo formato)
+  const artMes = delMes.reduce((s,g) => {
+    if (g.items) return s + g.items.filter(i=>i.categoria==='articulos').reduce((ss,i)=>ss+(i.cantidad||0)*(i.precioUnitario||0),0) + (g.totalManual&&g.items.some(i=>i.categoria==='articulos')?(g.total||0):0);
+    return s + (g.categoria==='articulos'?(g.total||0):0);
+  }, 0);
+  const insMes = delMes.reduce((s,g) => {
+    if (g.items) return s + g.items.filter(i=>i.categoria==='insumos').reduce((ss,i)=>ss+(i.cantidad||0)*(i.precioUnitario||0),0);
+    return s + (g.categoria==='insumos'?(g.total||0):0);
+  }, 0);
+
+  document.getElementById('gasto-total-mes').textContent     = pesos(totalMes);
   document.getElementById('gasto-articulos-mes').textContent = pesos(artMes);
   document.getElementById('gasto-insumos-mes').textContent   = pesos(insMes);
 
@@ -814,103 +839,203 @@ function renderGastos() {
   const tbody    = document.getElementById('gastos-tbody');
   const mobileEl = document.getElementById('gastos-mobile');
   const vacio    = `<div class="empty-state">No hay gastos registrados</div>`;
-  if (!lista.length) { tbody.innerHTML=`<tr><td colspan="8">${vacio}</td></tr>`; mobileEl.innerHTML=vacio; return; }
+  if (!lista.length) { tbody.innerHTML=`<tr><td colspan="6">${vacio}</td></tr>`; mobileEl.innerHTML=vacio; return; }
 
-  tbody.innerHTML = lista.map(g=>`
+  tbody.innerHTML = lista.map(g => {
+    const items = itemsDeGasto(g);
+    return `
     <tr>
       <td>${fecha(g.fecha)}</td>
-      <td><span class="cat-badge cat-${g.categoria}">${catLabel(g.categoria)}</span></td>
-      <td>${g.descripcion||'—'}${g.productoId?`<br><small style="color:#94a3b8">${CATALOGO[g.productoId]?.nombre||''} ${[g.talle,g.color].filter(Boolean).join(' ')}</small>`:''}</td>
-      <td>${g.cantidad||'—'}</td>
-      <td>${g.precioUnitario?pesos(g.precioUnitario):'—'}</td>
-      <td><strong>${pesos(g.total)}</strong></td>
       <td>${g.proveedor||'—'}</td>
+      <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${resumenItems(g)}</td>
+      <td>${items.length} ítem${items.length!==1?'s':''}</td>
+      <td><strong>${pesos(g.total)}</strong></td>
       <td>
         <button class="btn btn-secondary btn-sm" onclick="editarGasto('${g.id}')">✏</button>
         <button class="btn btn-danger btn-sm" onclick="eliminarGasto('${g.id}')">✕</button>
       </td>
-    </tr>`).join('');
-  mobileEl.innerHTML = lista.map(g=>`
+    </tr>`;
+  }).join('');
+
+  mobileEl.innerHTML = lista.map(g => {
+    const items = itemsDeGasto(g);
+    return `
     <div class="gasto-card">
       <div class="gasto-card-top">
-        <div><div class="gasto-card-desc">${g.descripcion||'Sin descripción'}</div></div>
+        <div>
+          <div class="gasto-card-desc">${g.proveedor||'Sin proveedor'}</div>
+          <div style="font-size:0.78rem;color:#64748b;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px">${resumenItems(g)}</div>
+        </div>
         <strong>${pesos(g.total)}</strong>
       </div>
-      <div class="gasto-card-meta">${fecha(g.fecha)} · <span class="cat-badge cat-${g.categoria}">${catLabel(g.categoria)}</span>${g.proveedor?` · ${g.proveedor}`:''}</div>
-      ${g.productoId?`<div style="font-size:0.78rem;color:#64748b;margin-top:3px">${CATALOGO[g.productoId]?.nombre||''} ${[g.talle,g.color].filter(Boolean).join(' ')}</div>`:''}
+      <div class="gasto-card-meta">${fecha(g.fecha)} · ${items.length} ítem${items.length!==1?'s':''}</div>
       <div style="display:flex;gap:6px;margin-top:8px">
         <button class="btn btn-secondary btn-sm" onclick="editarGasto('${g.id}')">✏ Editar</button>
         <button class="btn btn-danger btn-sm" onclick="eliminarGasto('${g.id}')">✕</button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
-function abrirGastoModal(item=null) {
-  document.getElementById('gasto-id').value          = item?.id||'';
-  document.getElementById('gasto-fecha').value       = item?.fecha||hoyISO();
-  document.getElementById('gasto-categoria').value   = item?.categoria||'';
-  document.getElementById('gasto-descripcion').value = item?.descripcion||'';
-  document.getElementById('gasto-cantidad').value    = item?.cantidad||1;
-  document.getElementById('gasto-precio-unit').value = item?.precioUnitario||'';
-  document.getElementById('gasto-total-calc').value  = item?.total||'';
-  document.getElementById('gasto-proveedor').value   = item?.proveedor||'';
-  document.getElementById('gasto-producto').value    = item?.productoId||'';
-  document.getElementById('gasto-color').value       = item?.color||'';
-  document.getElementById('gasto-talle').value       = item?.talle||'';
-  actualizarCamposGasto();
+function abrirGastoModal(gasto=null) {
+  _gastoItems = [];
+  document.getElementById('gasto-id').value       = gasto?.id||'';
+  document.getElementById('gasto-fecha').value    = gasto?.fecha||hoyISO();
+  document.getElementById('gasto-proveedor').value = gasto?.proveedor||'';
+  document.getElementById('gasto-notas').value    = gasto?.notas||'';
+  document.getElementById('gi-total-manual').value = gasto?.total||'';
+  document.getElementById('gasto-items-container').innerHTML = '';
+
+  const items = gasto ? itemsDeGasto(gasto) : [];
+  if (items.length) items.forEach(i => agregarItemGasto(i));
+  else agregarItemGasto();
+
+  calcularTotalGastoModal();
   document.getElementById('modal-gasto').classList.add('active');
 }
+
 function cerrarGastoModal() { document.getElementById('modal-gasto').classList.remove('active'); }
 
-function actualizarCamposGasto() {
-  const cat = document.getElementById('gasto-categoria').value;
-  document.getElementById('gasto-articulo-wrap').style.display = cat==='articulos'?'block':'none';
+function agregarItemGasto(data=null) {
+  const idx = _gastoItems.length;
+  _gastoItems.push(data ? {...data} : { categoria:'articulos', productoId:'', color:'', talle:'', descripcion:'', cantidad:1, precioUnitario:null });
+  renderItemGasto(idx);
 }
 
-function actualizarCamposGastoArticulo() {
-  const prod = CATALOGO[document.getElementById('gasto-producto').value];
-  document.getElementById('gasto-color-wrap').style.display = prod?.tieneColores?'block':'none';
-  document.getElementById('gasto-talle-wrap').style.display = prod?.tieneTalles?'block':'none';
+function renderItemGasto(idx) {
+  const container = document.getElementById('gasto-items-container');
+  const existing  = document.getElementById(`gi-item-${idx}`);
+  const item = _gastoItems[idx];
+  const prod = item.categoria==='articulos' && item.productoId ? CATALOGO[item.productoId] : null;
+  const subtotal = (item.cantidad||0) * (item.precioUnitario||0);
+
+  const prodOpts  = Object.entries(CATALOGO).map(([id,p])=>`<option value="${id}" ${item.productoId===id?'selected':''}>${p.nombre}</option>`).join('');
+  const colorOpts = COLORES.map(c=>`<option value="${c}" ${item.color===c?'selected':''}>${c}</option>`).join('');
+  const talleOpts = TALLES.map(t=>`<option value="${t}" ${item.talle===t?'selected':''}>${t}</option>`).join('');
+
+  const html = `
+    <div class="product-line" id="gi-item-${idx}">
+      <div class="product-line-header">
+        <span class="product-line-num">Ítem ${idx+1}</span>
+        <div style="display:flex;gap:8px;align-items:center">
+          ${subtotal>0?`<span class="product-line-price">${pesos(subtotal)}</span>`:''}
+          ${_gastoItems.length>1?`<button class="btn btn-danger btn-sm" onclick="quitarItemGasto(${idx})">✕</button>`:''}
+        </div>
+      </div>
+      <div class="form-row cols-2" style="margin-bottom:10px">
+        <div class="form-group" style="margin-bottom:0">
+          <label>Categoría</label>
+          <select class="form-control" onchange="cambiarItemGasto(${idx},'categoria',this.value)">
+            <option value="articulos" ${item.categoria==='articulos'?'selected':''}>🧥 Artículos</option>
+            <option value="insumos" ${item.categoria==='insumos'?'selected':''}>🖨 Insumos</option>
+            <option value="otro" ${item.categoria==='otro'?'selected':''}>📦 Otro</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label>Descripción</label>
+          <input type="text" class="form-control" value="${item.descripcion||''}" placeholder="Ej: Remeras blancas M"
+            onchange="cambiarItemGasto(${idx},'descripcion',this.value)">
+        </div>
+      </div>
+      ${item.categoria==='articulos'?`
+      <div class="form-row cols-3" style="margin-bottom:10px">
+        <div class="form-group" style="margin-bottom:0">
+          <label>Producto</label>
+          <select class="form-control" onchange="cambiarItemGasto(${idx},'productoId',this.value)">
+            <option value="">Seleccionar...</option>${prodOpts}
+          </select>
+        </div>
+        ${prod?.tieneColores?`<div class="form-group" style="margin-bottom:0"><label>Color</label><select class="form-control" onchange="cambiarItemGasto(${idx},'color',this.value)"><option value="">—</option>${colorOpts}</select></div>`:`<div></div>`}
+        ${prod?.tieneTalles?`<div class="form-group" style="margin-bottom:0"><label>Talle</label><select class="form-control" onchange="cambiarItemGasto(${idx},'talle',this.value)"><option value="">—</option>${talleOpts}</select></div>`:`<div></div>`}
+      </div>`:''}
+      <div class="form-row cols-3">
+        <div class="form-group" style="margin-bottom:0">
+          <label>Cantidad *</label>
+          <input type="number" class="form-control" min="1" value="${item.cantidad||1}"
+            onchange="cambiarItemGasto(${idx},'cantidad',parseInt(this.value)||1)">
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label>Precio unit. <small style="font-weight:400;color:#94a3b8">(opcional)</small></label>
+          <input type="number" class="form-control" value="${item.precioUnitario||''}" placeholder="—"
+            onchange="cambiarItemGasto(${idx},'precioUnitario',parseFloat(this.value)||null)">
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label>Subtotal</label>
+          <input type="text" class="form-control" value="${subtotal>0?pesos(subtotal):'—'}" readonly style="background:#f1f5f9;font-weight:600">
+        </div>
+      </div>
+    </div>`;
+
+  if (existing) existing.outerHTML = html;
+  else container.insertAdjacentHTML('beforeend', html);
+  calcularTotalGastoModal();
 }
 
-function calcularTotalGasto() {
-  const cant  = parseFloat(document.getElementById('gasto-cantidad').value)||0;
-  const prec  = parseFloat(document.getElementById('gasto-precio-unit').value)||0;
-  document.getElementById('gasto-total-calc').value = cant * prec;
+function cambiarItemGasto(idx, campo, valor) {
+  _gastoItems[idx][campo] = valor;
+  renderItemGasto(idx);
 }
+
+function quitarItemGasto(idx) {
+  _gastoItems.splice(idx, 1);
+  document.getElementById('gasto-items-container').innerHTML = '';
+  _gastoItems.forEach((_,i) => renderItemGasto(i));
+  calcularTotalGastoModal();
+}
+
+function calcularTotalGastoModal() {
+  const totalCalc = _gastoItems.reduce((s,i) => s + (i.cantidad||0)*(i.precioUnitario||0), 0);
+  const hint = document.getElementById('gi-total-calc-hint');
+  const campo = document.getElementById('gi-total-manual');
+  if (totalCalc > 0) {
+    hint.textContent = 'Calculado de los items: ' + pesos(totalCalc);
+    if (!campo.dataset.editadoManual) campo.value = totalCalc;
+  } else {
+    hint.textContent = 'Ingresá el total si no tenés precios por ítem';
+    if (!campo.dataset.editadoManual) campo.value = '';
+  }
+  return totalCalc;
+}
+
+function toggleSoloTotal() {}
 
 async function guardarGasto() {
-  const id        = document.getElementById('gasto-id').value||uid();
+  const id        = document.getElementById('gasto-id').value || uid();
   const fecha_v   = document.getElementById('gasto-fecha').value;
-  const categoria = document.getElementById('gasto-categoria').value;
-  const desc      = document.getElementById('gasto-descripcion').value.trim();
-  const cantidad  = parseInt(document.getElementById('gasto-cantidad').value)||0;
-  const precUnit  = parseFloat(document.getElementById('gasto-precio-unit').value)||0;
-  const total     = cantidad * precUnit;
   const proveedor = document.getElementById('gasto-proveedor').value.trim();
+  const notas     = document.getElementById('gasto-notas').value.trim();
+  calcularTotalGastoModal();
+  const total = parseFloat(document.getElementById('gi-total-manual').value) || 0;
 
-  if (!categoria) { alert('Seleccioná una categoría'); return; }
-  if (!total)     { alert('Ingresá precio y cantidad'); return; }
+  if (!fecha_v)           { alert('Ingresá la fecha'); return; }
+  if (!_gastoItems.length){ alert('Agregá al menos un ítem'); return; }
+  if (!total)             { alert('Ingresá el total de la compra'); return; }
 
-  const gastoData = { fecha: fecha_v, categoria, descripcion: desc, cantidad, precioUnitario: precUnit, total, proveedor };
+  const gastoData = {
+    fecha: fecha_v, proveedor, notas, total,
+    items: _gastoItems,
+    // Backward compat
+    categoria: _gastoItems[0]?.categoria || 'otro',
+    descripcion: _gastoItems.map(i=>i.descripcion||CATALOGO[i.productoId]?.nombre||'').filter(Boolean).join(', '),
+  };
 
-  if (categoria === 'articulos') {
-    const productoId = document.getElementById('gasto-producto').value;
-    const color      = document.getElementById('gasto-color').value;
-    const talle      = document.getElementById('gasto-talle').value;
-    if (!productoId) { alert('Seleccioná el producto'); return; }
-    Object.assign(gastoData, { productoId, color, talle });
+  // Revertir stock anterior si es edición
+  const prevGasto = _gastos.find(g => g.id === id);
+  if (prevGasto) {
+    for (const item of itemsDeGasto(prevGasto)) {
+      if (item.categoria==='articulos' && item.productoId && item.cantidad) {
+        const si = stockItemMatch(item.productoId, item.color||'', item.talle||'');
+        if (si) await guardarDoc('stock', si.id, {...si, cantidad: Math.max(0, si.cantidad-(item.cantidad||0))});
+      }
+    }
+  }
 
-    // Si es edición, calcular diferencia de cantidad
-    const prevGasto = _gastos.find(g=>g.id===id);
-    const prevCant  = (prevGasto?.categoria==='articulos') ? (prevGasto.cantidad||0) : 0;
-    const diff      = cantidad - prevCant;
-
-    const si = stockItemMatch(productoId, color, talle);
-    if (si) {
-      await guardarDoc('stock', si.id, {...si, cantidad: si.cantidad + diff});
-    } else if (diff > 0) {
-      await guardarDoc('stock', uid(), { productoId, color, talle, cantidad: diff });
+  // Aplicar nuevo stock para artículos
+  for (const item of _gastoItems) {
+    if (item.categoria==='articulos' && item.productoId && (item.cantidad||0) > 0) {
+      const si = stockItemMatch(item.productoId, item.color||'', item.talle||'');
+      if (si) await guardarDoc('stock', si.id, {...si, cantidad: si.cantidad+(item.cantidad||0)});
+      else    await guardarDoc('stock', uid(), { productoId:item.productoId, color:item.color||'', talle:item.talle||'', cantidad:item.cantidad||0 });
     }
   }
 
@@ -922,11 +1047,14 @@ function editarGasto(id) { abrirGastoModal(_gastos.find(g=>g.id===id)); }
 
 async function eliminarGasto(id) {
   if (!confirm('¿Eliminar este gasto?')) return;
-  // Si era de artículos, restar del stock
   const g = _gastos.find(x=>x.id===id);
-  if (g?.categoria==='articulos' && g.productoId) {
-    const si = stockItemMatch(g.productoId, g.color||'', g.talle||'');
-    if (si) await guardarDoc('stock', si.id, {...si, cantidad: Math.max(0, si.cantidad-(g.cantidad||0))});
+  if (g) {
+    for (const item of itemsDeGasto(g)) {
+      if (item.categoria==='articulos' && item.productoId && item.cantidad) {
+        const si = stockItemMatch(item.productoId, item.color||'', item.talle||'');
+        if (si) await guardarDoc('stock', si.id, {...si, cantidad: Math.max(0, si.cantidad-(item.cantidad||0))});
+      }
+    }
   }
   await eliminarDoc('gastos', id);
 }
